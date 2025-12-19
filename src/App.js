@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { DeepFilterNet3Processor, DeepFilterNoiseFilterProcessor } from "deepfilternet3-noise-filter";
+import { DeepFilterNet3Processor } from "deepfilternet3-noise-filter";
 
 export default function App() {
   const [status, setStatus] = useState("idle");
@@ -68,6 +68,30 @@ export default function App() {
   const start = useCallback(async () => {
     if (running) return;
 
+    if (ctxRef.current && ctxRef.current.state === "suspended") {
+      try {
+        setStatus("resuming audio...");
+        await ctxRef.current.resume();
+
+        if (audioRef.current) {
+          try {
+            await audioRef.current.play();
+          } catch (playError) {
+            console.error("Audio play error:", playError);
+            throw new Error("Failed to play audio. User interaction may be required.");
+          }
+        }
+
+        setRunning(true);
+        setStatus("running");
+        return;
+      } catch (error) {
+        console.error("Error resuming audio:", error);
+        setStatus(`error: ${error?.message || String(error)}`);
+        return;
+      }
+    }
+
     try {
       setStatus("requesting microphone...");
       
@@ -94,12 +118,6 @@ export default function App() {
       ctxRef.current = ctx;
 
       setStatus("loading processor...");
-
-      proc = new DeepFilterNoiseFilterProcessor(
-        {
-          
-        }
-      )
       
       const proc = new DeepFilterNet3Processor({
         sampleRate: ctx.sampleRate,
@@ -151,6 +169,28 @@ export default function App() {
       await cleanup();
     }
   }, [running, level, noiseSuppressionEnabled, cleanup]);
+
+  const stop = useCallback(async () => {
+    if (!running) return;
+
+    try {
+      setStatus("suspending audio...");
+
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+
+      if (ctxRef.current && ctxRef.current.state === "running") {
+        await ctxRef.current.suspend();
+      }
+
+      setRunning(false);
+      setStatus("suspended");
+    } catch (error) {
+      console.error("Error suspending audio:", error);
+      setStatus(`error: ${error?.message || String(error)}`);
+    }
+  }, [running]);
 
   useEffect(() => {
     if (procRef.current && running) {
@@ -249,7 +289,7 @@ export default function App() {
           Start
         </button>
         <button 
-          onClick={cleanup} 
+          onClick={stop} 
           disabled={!running}
           style={{
             padding: "10px 20px",
