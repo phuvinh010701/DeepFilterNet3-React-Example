@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { DeepFilterNet3Processor } from "deepfilternet3-noise-filter";
+import { DeepFilterNet3Core } from "deepfilternet3-noise-filter";
 
 export default function App() {
   const [status, setStatus] = useState("idle");
@@ -119,11 +119,11 @@ export default function App() {
 
       setStatus("loading processor...");
       
-      const proc = new DeepFilterNet3Processor({
+      const proc = new DeepFilterNet3Core({
         sampleRate: ctx.sampleRate,
         noiseReductionLevel: 10,
         assetConfig: {
-          cdnUrl: "https://cdn.laptrinhai.id.vn/deepfilternet3"
+          cdnUrl: "https://cdn.laptrinhai.id.vn/deepfilternet3" // Replace this with your self-hosted assets URL
         }
       });
 
